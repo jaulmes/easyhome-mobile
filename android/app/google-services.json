@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "661627782061",
+    "project_id": "studio-3316263020-abd3e",
+    "storage_bucket": "studio-3316263020-abd3e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:661627782061:android:5353c7c5f35ae56bdbd724",
+        "android_client_info": {
+          "package_name": "com.easyHome"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDNJI1oHt-P8jb8n20HwmdzBFKV_l_DhRM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
