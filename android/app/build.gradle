@@ -77,9 +77,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.marco_test"
+    namespace "com.easyHome"
     defaultConfig {
-        applicationId "com.marco_test"
+        applicationId "com.easyHome"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -123,3 +123,5 @@ configurations.all {
         exclude group: "com.android.support", module: "support-compat"
     }
 }
+
+apply plugin: "com.google.gms.google-services"
