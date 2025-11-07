@@ -28,7 +28,7 @@ const LandlordStack = () => (
   <Stack.Navigator>
     <Stack.Screen name="MyListings" component={MyListingsScreen} options={{ title: 'Mes annonces' }} />
     <Stack.Screen name="AddListing" component={AddListingScreen} options={{ title: 'Ajouter une annonce' }} />
-    <Stack.Screen name="EditListing" component={EditListingScreen} options={{ title: 'Modifier l'annonce' }} />
+    <Stack.Screen name="EditListing" component={EditListingScreen} options={{ title: "Modifier l'annonce" }} />
   </Stack.Navigator>
 );
 
