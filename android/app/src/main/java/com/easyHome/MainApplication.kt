@@ -1,4 +1,4 @@
-package com.marco_test
+package com.easyHome
 
 import android.app.Application
 import com.facebook.react.PackageList
