@@ -1,26 +1,36 @@
 {
   "project_info": {
-    "project_number": "661627782061",
-    "project_id": "studio-3316263020-abd3e",
-    "storage_bucket": "studio-3316263020-abd3e.firebasestorage.app"
+    "project_number": "605471664353",
+    "project_id": "easyhome-c6270",
+    "storage_bucket": "easyhome-c6270.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:661627782061:android:5353c7c5f35ae56bdbd724",
+        "mobilesdk_app_id": "1:605471664353:android:bb3384deed78b93c592fa0",
         "android_client_info": {
           "package_name": "com.easyHome"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "605471664353-fmhs1mbcp940hgad2m362b1qageo2p19.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyDNJI1oHt-P8jb8n20HwmdzBFKV_l_DhRM"
+          "current_key": "AIzaSyC5keKxafFJvH150tbBeEnRw5TZapG0WUQ"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "605471664353-fmhs1mbcp940hgad2m362b1qageo2p19.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
