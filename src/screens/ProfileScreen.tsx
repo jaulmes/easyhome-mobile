@@ -17,7 +17,12 @@ const ProfileScreen = ({ navigation }) => {
         .collection('utilisateurs')
         .doc(currentUser.uid)
         .onSnapshot(documentSnapshot => {
-          setUser(documentSnapshot.data());
+          if (documentSnapshot.exists) {
+            setUser({ ...documentSnapshot.data(), email: currentUser.email });
+          } else {
+            // Handle case where user document doesn't exist in Firestore
+            setUser({ email: currentUser.email, nom: 'Utilisateur inconnu' });
+          }
           setLoading(false);
         });
 
@@ -66,27 +71,39 @@ const styles = StyleSheet.create({
     borderRadius: 75,
     marginBottom: 20,
   },
+  infoContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   info: {
     ...typography.body,
-    marginBottom: 5,
+    marginBottom: 8,
+    color: colors.text,
   },
   description: {
     ...typography.body,
     textAlign: 'center',
     marginVertical: 15,
+    color: colors.text,
+    paddingHorizontal: 20,
   },
   button: {
-    width: '100%',
+    width: '80%',
     height: 50,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 5,
+    borderRadius: 25,
     marginTop: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
   },
   buttonText: {
-    color: colors.background,
-    fontSize: 18,
+    color: colors.surface,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   signOutButton: {

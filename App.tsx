@@ -7,6 +7,8 @@ import firestore from '@react-native-firebase/firestore';
 import messaging from '@react-native-firebase/messaging';
 import { Alert } from 'react-native';
 import SplashScreen from 'react-native-splash-screen';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { colors } from './src/theme/colors';
 
 import HomeScreen from './src/screens/HomeScreen';
 import SearchScreen from './src/screens/SearchScreen';
@@ -34,14 +36,14 @@ const LandlordStack = () => (
 
 const ProfileStack = () => (
   <Stack.Navigator>
-    <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profil' }} />
+    <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Mon Profil' }} />
     <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Modifier le profil' }} />
   </Stack.Navigator>
 );
 
 const MessagesStack = () => (
   <Stack.Navigator>
-    <Stack.Screen name="Messages" component={MessagesScreen} options={{ title: 'Messages' }} />
+    <Stack.Screen name="Messages" component={MessagesScreen} options={{ title: 'Mes Messages' }} />
     <Stack.Screen name="Chat" component={ChatScreen} options={({ route }) => ({ title: route.params.otherUserName })} />
   </Stack.Navigator>
 );
@@ -134,8 +136,30 @@ const App = () => {
 
   return (
     <NavigationContainer>
-      <Tab.Navigator>
-        <Tab.Screen name="Accueil" component={HomeScreen} />
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          tabBarIcon: ({ focused, color, size }) => {
+            let iconName;
+
+            if (route.name === 'Accueil') {
+              iconName = focused ? 'home' : 'home-outline';
+            } else if (route.name === 'Recherche') {
+              iconName = focused ? 'search' : 'search-outline';
+            } else if (route.name === 'Messages') {
+              iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
+            } else if (route.name === 'Profil') {
+              iconName = focused ? 'person' : 'person-outline';
+            } else if (route.name === 'Propriétaire') {
+              iconName = focused ? 'briefcase' : 'briefcase-outline';
+            }
+
+            return <Icon name={iconName} size={size} color={color} />;
+          },
+          tabBarActiveTintColor: colors.primary,
+          tabBarInactiveTintColor: 'gray',
+        })}
+      >
+        <Tab.Screen name="Accueil" component={HomeScreen} options={{ title: 'Annonces' }} />
         <Tab.Screen name="Recherche" component={SearchScreen} />
         <Tab.Screen name="Messages" component={MessagesStack} />
         <Tab.Screen name="Profil" component={ProfileStack} />

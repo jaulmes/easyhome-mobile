@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, ScrollView, Image } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import { launchImageLibrary } from 'react-native-image-picker';
 import storage from '@react-native-firebase/storage';
+import { colors } from '../../theme/colors';
+import { typography } from '../../theme/typography';
 
 const EditListingScreen = ({ route, navigation }) => {
   const { listingId } = route.params;
@@ -90,17 +92,19 @@ const EditListingScreen = ({ route, navigation }) => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Modifier l'annonce</Text>
-      <TextInput style={styles.input} placeholder="Titre" value={title} onChangeText={setTitle} />
-      <TextInput style={styles.input} placeholder="Description" value={description} onChangeText={setDescription} multiline />
-      <TextInput style={styles.input} placeholder="Prix" value={price} onChangeText={setPrice} keyboardType="numeric" />
-      <TextInput style={styles.input} placeholder="Ville" value={city} onChangeText={setCity} />
-      <TextInput style={styles.input} placeholder="Quartier" value={neighborhood} onChangeText={setNeighborhood} />
-      <TextInput style={styles.input} placeholder="Type de bien" value={propertyType} onChangeText={setPropertyType} />
-      <TextInput style={styles.input} placeholder="Salles de bain" value={bathrooms} onChangeText={setBathrooms} keyboardType="numeric" />
-      <TextInput style={styles.input} placeholder="Superficie (facultatif)" value={area} onChangeText={setArea} keyboardType="numeric" />
+      <Text style={typography.h1}>Modifier l'annonce</Text>
+      <TextInput style={styles.input} placeholder="Titre" value={title} onChangeText={setTitle} placeholderTextColor="#A9A9A9" />
+      <TextInput style={styles.input} placeholder="Description" value={description} onChangeText={setDescription} multiline placeholderTextColor="#A9A9A9" />
+      <TextInput style={styles.input} placeholder="Prix" value={price} onChangeText={setPrice} keyboardType="numeric" placeholderTextColor="#A9A9A9" />
+      <TextInput style={styles.input} placeholder="Ville" value={city} onChangeText={setCity} placeholderTextColor="#A9A9A9" />
+      <TextInput style={styles.input} placeholder="Quartier" value={neighborhood} onChangeText={setNeighborhood} placeholderTextColor="#A9A9A9" />
+      <TextInput style={styles.input} placeholder="Type de bien" value={propertyType} onChangeText={setPropertyType} placeholderTextColor="#A9A9A9" />
+      <TextInput style={styles.input} placeholder="Salles de bain" value={bathrooms} onChangeText={setBathrooms} keyboardType="numeric" placeholderTextColor="#A9A9A9" />
+      <TextInput style={styles.input} placeholder="Superficie (facultatif)" value={area} onChangeText={setArea} keyboardType="numeric" placeholderTextColor="#A9A9A9" />
 
-      <Button title="Sélectionner de nouvelles photos" onPress={handleSelectImages} />
+      <TouchableOpacity style={styles.button} onPress={handleSelectImages}>
+        <Text style={styles.buttonText}>Sélectionner de nouvelles photos</Text>
+      </TouchableOpacity>
       <View style={styles.imageContainer}>
         {imageUrls.map((url, index) => (
           <Image key={index} source={{ uri: url }} style={styles.image} />
@@ -110,7 +114,9 @@ const EditListingScreen = ({ route, navigation }) => {
         ))}
       </View>
 
-      <Button title="Mettre à jour l'annonce" onPress={handleUpdateListing} />
+      <TouchableOpacity style={styles.button} onPress={handleUpdateListing}>
+        <Text style={styles.buttonText}>Mettre à jour l'annonce</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 };
@@ -118,18 +124,31 @@ const EditListingScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 20,
+    backgroundColor: colors.background,
   },
   input: {
     width: '100%',
-    height: 40,
-    borderColor: 'gray',
+    height: 50,
+    backgroundColor: colors.surface,
+    borderColor: colors.primary,
     borderWidth: 1,
+    borderRadius: 5,
+    marginBottom: 15,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    color: colors.text,
+  },
+  button: {
+    backgroundColor: colors.primary,
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
     marginBottom: 10,
-    paddingHorizontal: 10,
+  },
+  buttonText: {
+    color: colors.surface,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   imageContainer: {
     flexDirection: 'row',
@@ -140,6 +159,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     margin: 5,
+    borderRadius: 5,
   },
 });
 

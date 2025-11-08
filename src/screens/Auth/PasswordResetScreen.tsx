@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import auth from '@react-native-firebase/auth';
+import { colors } from '../../theme/colors';
+import { typography } from '../../theme/typography';
 
 const PasswordResetScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -19,7 +21,7 @@ const PasswordResetScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Réinitialiser le mot de passe</Text>
+      <Text style={typography.h1}>Réinitialiser le mot de passe</Text>
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -27,12 +29,14 @@ const PasswordResetScreen = ({ navigation }) => {
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
+        placeholderTextColor="#A9A9A9"
       />
-      <Button title="Envoyer" onPress={handlePasswordReset} />
-      <Button
-        title="Retour à la connexion"
-        onPress={() => navigation.navigate('SignIn')}
-      />
+      <TouchableOpacity style={styles.button} onPress={handlePasswordReset}>
+        <Text style={styles.buttonText}>Envoyer</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
+        <Text style={styles.link}>Retour à la connexion</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -43,18 +47,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 20,
+    backgroundColor: colors.background,
   },
   input: {
     width: '100%',
-    height: 40,
-    borderColor: 'gray',
+    height: 50,
+    backgroundColor: colors.surface,
+    borderColor: colors.primary,
     borderWidth: 1,
+    borderRadius: 5,
+    marginBottom: 15,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    color: colors.text,
+  },
+  button: {
+    width: '100%',
+    height: 50,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 5,
     marginBottom: 10,
-    paddingHorizontal: 10,
+  },
+  buttonText: {
+    color: colors.background,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  link: {
+    color: colors.primary,
+    marginTop: 10,
   },
 });
 

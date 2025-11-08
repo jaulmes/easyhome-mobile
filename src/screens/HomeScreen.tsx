@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   },
   location: {
     ...typography.body,
-    color: 'gray',
+    color: colors.text,
   },
 });
 

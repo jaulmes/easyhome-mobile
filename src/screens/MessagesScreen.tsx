@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   },
   lastMessage: {
     ...typography.body,
-    color: 'gray',
+    color: colors.text,
   },
 });
 

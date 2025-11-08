@@ -7,51 +7,73 @@ import { typography } from '../theme/typography';
 const SearchScreen = ({ navigation }) => {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Input states
   const [searchQuery, setSearchQuery] = useState('');
   const [city, setCity] = useState('');
   const [propertyType, setPropertyType] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
 
+  // Active search filters
+  const [activeFilters, setActiveFilters] = useState({
+    searchQuery: '',
+    city: '',
+    propertyType: '',
+    minPrice: '',
+    maxPrice: '',
+  });
+
+  const handleSearch = () => {
+    setLoading(true);
+    setActiveFilters({
+      searchQuery,
+      city,
+      propertyType,
+      minPrice,
+      maxPrice,
+    });
+  };
+
   useEffect(() => {
     let query = firestore().collection('annonces').where('status', '==', 'visible');
 
-    if (city) {
-      query = query.where('city', '==', city);
+    if (activeFilters.city) {
+      query = query.where('city', '==', activeFilters.city);
     }
-    if (propertyType) {
-      query = query.where('propertyType', '==', propertyType);
+    if (activeFilters.propertyType) {
+      query = query.where('propertyType', '==', activeFilters.propertyType);
     }
-    if (minPrice) {
-      query = query.where('price', '>=', parseFloat(minPrice));
+    if (activeFilters.minPrice) {
+      query = query.where('price', '>=', parseFloat(activeFilters.minPrice));
     }
-    if (maxPrice) {
-      query = query.where('price', '<=', parseFloat(maxPrice));
+    if (activeFilters.maxPrice) {
+      query = query.where('price', '<=', parseFloat(activeFilters.maxPrice));
     }
 
     const subscriber = query.onSnapshot(querySnapshot => {
-      let listings = [];
+      let listingsData = [];
       querySnapshot.forEach(documentSnapshot => {
-        listings.push({
+        listingsData.push({
           ...documentSnapshot.data(),
           id: documentSnapshot.id,
         });
       });
 
-      if (searchQuery) {
-        listings = listings.filter(item =>
-          item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.neighborhood.toLowerCase().includes(searchQuery.toLowerCase())
+      if (activeFilters.searchQuery) {
+        listingsData = listingsData.filter(item =>
+          item.title.toLowerCase().includes(activeFilters.searchQuery.toLowerCase()) ||
+          item.description.toLowerCase().includes(activeFilters.searchQuery.toLowerCase()) ||
+          item.neighborhood.toLowerCase().includes(activeFilters.searchQuery.toLowerCase())
         );
       }
 
-      setListings(listings);
+      setListings(listingsData);
       setLoading(false);
     });
 
     return () => subscriber();
-  }, [searchQuery, city, propertyType, minPrice, maxPrice]);
+  }, [activeFilters]);
 
   if (loading) {
     return <ActivityIndicator size="large" color={colors.primary} />;
@@ -71,22 +93,31 @@ const SearchScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.filtersContainer}>
-        <TextInput style={styles.input} placeholder="Rechercher..." value={searchQuery} onChangeText={setSearchQuery} />
+        <TextInput style={styles.input} placeholder="Rechercher..." value={searchQuery} onChangeText={setSearchQuery} placeholderTextColor="#A9A9A9" />
         <View style={styles.row}>
-          <TextInput style={[styles.input, styles.halfInput]} placeholder="Ville" value={city} onChangeText={setCity} />
-          <TextInput style={[styles.input, styles.halfInput]} placeholder="Type de bien" value={propertyType} onChangeText={setPropertyType} />
+          <TextInput style={[styles.input, styles.halfInput]} placeholder="Ville" value={city} onChangeText={setCity} placeholderTextColor="#A9A9A9" />
+          <TextInput style={[styles.input, styles.halfInput]} placeholder="Type de bien" value={propertyType} onChangeText={setPropertyType} placeholderTextColor="#A9A9A9" />
         </View>
         <View style={styles.row}>
-          <TextInput style={[styles.input, styles.halfInput]} placeholder="Prix min" value={minPrice} onChangeText={setMinPrice} keyboardType="numeric" />
-          <TextInput style={[styles.input, styles.halfInput]} placeholder="Prix max" value={maxPrice} onChangeText={setMaxPrice} keyboardType="numeric" />
+          <TextInput style={[styles.input, styles.halfInput]} placeholder="Prix min" value={minPrice} onChangeText={setMinPrice} keyboardType="numeric" placeholderTextColor="#A9A9A9" />
+          <TextInput style={[styles.input, styles.halfInput]} placeholder="Prix max" value={maxPrice} onChangeText={setMaxPrice} keyboardType="numeric" placeholderTextColor="#A9A9A9" />
         </View>
+        <TouchableOpacity style={styles.button} onPress={handleSearch}>
+          <Text style={styles.buttonText}>Rechercher</Text>
+        </TouchableOpacity>
       </View>
-      <FlatList
-        data={listings}
-        renderItem={renderItem}
-        keyExtractor={item => item.id}
-        showsVerticalScrollIndicator={false}
-      />
+      {listings.length === 0 && !loading ? (
+        <View style={styles.noResultsContainer}>
+          <Text style={styles.noResultsText}>Aucun résultat trouvé.</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={listings}
+          renderItem={renderItem}
+          keyExtractor={item => item.id}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </View>
   );
 };
@@ -101,13 +132,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   input: {
-    height: 40,
+    height: 50,
+    backgroundColor: colors.surface,
     borderColor: colors.primary,
     borderWidth: 1,
     borderRadius: 5,
     marginBottom: 10,
-    paddingHorizontal: 10,
-    backgroundColor: colors.background,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    color: colors.text,
   },
   row: {
     flexDirection: 'row',
@@ -142,6 +175,27 @@ const styles = StyleSheet.create({
   },
   location: {
     ...typography.body,
+    color: 'gray',
+  },
+  button: {
+    backgroundColor: colors.primary,
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  buttonText: {
+    color: colors.surface,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  noResultsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noResultsText: {
+    ...typography.h2,
     color: 'gray',
   },
 });

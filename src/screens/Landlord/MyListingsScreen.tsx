@@ -46,8 +46,12 @@ const MyListingsScreen = ({ navigation }) => {
         <Text style={typography.h2}>{item.title}</Text>
         <Text style={styles.price}>{item.price} €</Text>
         <View style={styles.actions}>
-          <Button title="Modifier" onPress={() => navigation.navigate('EditListing', { listingId: item.id })} />
-          <Button title="Supprimer" onPress={() => handleDelete(item.id)} color={colors.error} />
+          <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('EditListing', { listingId: item.id })}>
+            <Text style={styles.buttonText}>Modifier</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.button, styles.deleteButton]} onPress={() => handleDelete(item.id)}>
+            <Text style={styles.buttonText}>Supprimer</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -55,7 +59,9 @@ const MyListingsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Button title="Ajouter une nouvelle annonce" onPress={() => navigation.navigate('AddListing')} />
+      <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('AddListing')}>
+        <Text style={styles.addButtonText}>Ajouter une nouvelle annonce</Text>
+      </TouchableOpacity>
       <FlatList
         data={listings}
         renderItem={renderItem}
@@ -99,6 +105,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginTop: 10,
+  },
+  button: {
+    backgroundColor: colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+  buttonText: {
+    color: colors.surface,
+    fontWeight: 'bold',
+  },
+  deleteButton: {
+    backgroundColor: colors.error,
+  },
+  addButton: {
+    backgroundColor: colors.primary,
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  addButtonText: {
+    color: colors.surface,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

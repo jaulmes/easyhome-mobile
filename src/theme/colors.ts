@@ -1,9 +1,9 @@
 export const colors = {
-  primary: '#4CAF50', // Green from the logo
-  secondary: '#2196F3', // Blue from the logo
-  accent: '#FFC107', // A complementary accent color
-  text: '#333333',
-  background: '#FFFFFF',
-  surface: '#F5F5F5',
-  error: '#B00020',
+  primary: '#38A1F3',
+  secondary: '#76C893',
+  accent: '#F4A261',
+  text: '#264653',
+  background: '#F7F9F9',
+  surface: '#FFFFFF',
+  error: '#E76F51',
 };

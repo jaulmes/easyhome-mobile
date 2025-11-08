@@ -29,6 +29,7 @@ const SignUpScreen = ({ navigation }) => {
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
+        placeholderTextColor="#A9A9A9"
       />
       <TextInput
         style={styles.input}
@@ -36,6 +37,7 @@ const SignUpScreen = ({ navigation }) => {
         value={password}
         onChangeText={setPassword}
         secureTextEntry
+        placeholderTextColor="#A9A9A9"
       />
       <TouchableOpacity style={styles.button} onPress={handleSignUp}>
         <Text style={styles.buttonText}>S'inscrire</Text>
@@ -58,12 +60,14 @@ const styles = StyleSheet.create({
   input: {
     width: '100%',
     height: 50,
+    backgroundColor: colors.surface,
     borderColor: colors.primary,
     borderWidth: 1,
     borderRadius: 5,
     marginBottom: 15,
     paddingHorizontal: 15,
     fontSize: 16,
+    color: colors.text,
   },
   button: {
     width: '100%',
