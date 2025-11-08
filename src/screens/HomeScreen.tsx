@@ -16,13 +16,18 @@ const HomeScreen = ({ navigation }) => {
       .limit(10)
       .onSnapshot(querySnapshot => {
         const listings = [];
-        querySnapshot.forEach(documentSnapshot => {
-          listings.push({
-            ...documentSnapshot.data(),
-            id: documentSnapshot.id,
+        if (querySnapshot) {
+          querySnapshot.forEach(documentSnapshot => {
+            listings.push({
+              ...documentSnapshot.data(),
+              id: documentSnapshot.id,
+            });
           });
-        });
+        }
         setListings(listings);
+        setLoading(false);
+      }, error => {
+        console.error("Firestore Error: ", error);
         setLoading(false);
       });
 
