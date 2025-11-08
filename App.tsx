@@ -7,7 +7,7 @@ import firestore from '@react-native-firebase/firestore';
 import messaging from '@react-native-firebase/messaging';
 import { Alert } from 'react-native';
 import SplashScreen from 'react-native-splash-screen';
-import Icon from 'react-native-vector-icons/Ionicons';
+import Icon from 'react-native-vector-icons/dist/Ionicons';
 import { colors } from './src/theme/colors';
 
 import HomeScreen from './src/screens/HomeScreen';
