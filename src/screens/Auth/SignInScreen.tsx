@@ -1,28 +1,42 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
-import { signIn } from '../../services/authService';
-import { colors } from '../../theme/colors';
-import { typography } from '../../theme/typography';
+import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { signIn, signInWithGoogle } from '../../services/authService';
 
 const SignInScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSignIn = () => {
-    signIn(email, password)
-      .then(() => {
-        console.log('User signed in!');
-      })
-      .catch(error => {
-        console.error(error);
-      });
+  const handleSignIn = async () => {
+    if (!email || !password) {
+      Alert.alert('Erreur', 'Veuillez remplir tous les champs.');
+      return;
+    }
+    try {
+      await signIn(email, password);
+      console.log('User signed in!');
+      // La navigation se fera via le listener d'état d'authentification
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Erreur de connexion', error.message);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+      console.log('User signed in with Google!');
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Erreur de connexion', "Une erreur est survenue lors de la connexion avec Google.");
+    }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={typography.h1}>Bienvenue !</Text>
+    <View className="flex-1 justify-center items-center p-5 bg-gray-100">
+      <Text className="text-4xl font-bold mb-8 text-gray-800">Bienvenue !</Text>
+
       <TextInput
-        style={styles.input}
+        className="w-full h-14 bg-white border border-gray-300 rounded-lg mb-4 px-4 text-lg text-gray-800"
         placeholder="Email"
         value={email}
         onChangeText={setEmail}
@@ -30,65 +44,35 @@ const SignInScreen = ({ navigation }) => {
         keyboardType="email-address"
         placeholderTextColor="#A9A9A9"
       />
+
       <TextInput
-        style={styles.input}
+        className="w-full h-14 bg-white border border-gray-300 rounded-lg mb-6 px-4 text-lg text-gray-800"
         placeholder="Mot de passe"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
         placeholderTextColor="#A9A9A9"
       />
-      <TouchableOpacity style={styles.button} onPress={handleSignIn}>
-        <Text style={styles.buttonText}>Se connecter</Text>
+
+      <TouchableOpacity
+        className="w-full h-14 bg-blue-600 justify-center items-center rounded-lg mb-4"
+        onPress={handleSignIn}
+      >
+        <Text className="text-white text-lg font-bold">Se connecter</Text>
       </TouchableOpacity>
+
+      <TouchableOpacity
+        className="w-full h-14 bg-red-500 justify-center items-center rounded-lg mb-4"
+        onPress={handleGoogleSignIn}
+      >
+        <Text className="text-white text-lg font-bold">Continuer avec Google</Text>
+      </TouchableOpacity>
+
       <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-        <Text style={styles.link}>Vous n'avez pas de compte ? S'inscrire</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => navigation.navigate('PasswordReset')}>
-        <Text style={styles.link}>Mot de passe oublié ?</Text>
+        <Text className="text-blue-600 mt-4 text-base">Vous n'avez pas de compte ? S'inscrire</Text>
       </TouchableOpacity>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: colors.background,
-  },
-  input: {
-    width: '100%',
-    height: 50,
-    backgroundColor: colors.surface,
-    borderColor: colors.primary,
-    borderWidth: 1,
-    borderRadius: 5,
-    marginBottom: 15,
-    paddingHorizontal: 15,
-    fontSize: 16,
-    color: colors.text,
-  },
-  button: {
-    width: '100%',
-    height: 50,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 5,
-    marginBottom: 10,
-  },
-  buttonText: {
-    color: colors.background,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  link: {
-    color: colors.primary,
-    marginTop: 10,
-  },
-});
 
 export default SignInScreen;
