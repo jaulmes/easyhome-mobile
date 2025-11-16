@@ -1,166 +1,110 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
-import firestore from '@react-native-firebase/firestore';
-import auth from '@react-native-firebase/auth';
-import { launchImageLibrary } from 'react-native-image-picker';
-import storage from '@react-native-firebase/storage';
-import { colors } from '../../theme/colors';
-import { typography } from '../../theme/typography';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { getPropertyById, updateProperty } from '../../services/propertyService';
+
+const FormInput = ({ label, value, onChangeText, placeholder, keyboardType = 'default', multiline = false }) => (
+  <View className="mb-4">
+    <Text className="text-lg font-semibold text-gray-700 mb-2">{label}</Text>
+    <TextInput
+      className="w-full h-14 bg-white border border-gray-300 rounded-lg px-4 text-lg"
+      placeholder={placeholder}
+      value={value}
+      onChangeText={onChangeText}
+      keyboardType={keyboardType}
+      multiline={multiline}
+      placeholderTextColor="#A9A9A9"
+    />
+  </View>
+);
 
 const EditListingScreen = ({ route, navigation }) => {
-  const { listingId } = route.params;
-  const [listing, setListing] = useState(null);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
-  const [city, setCity] = useState('');
-  const [neighborhood, setNeighborhood] = useState('');
-  const [propertyType, setPropertyType] = useState('');
-  const [bathrooms, setBathrooms] = useState('');
-  const [area, setArea] = useState('');
-  const [images, setImages] = useState([]);
-  const [imageUrls, setImageUrls] = useState([]);
+  const { propertyId } = route.params;
+  const [propertyData, setPropertyData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const subscriber = firestore()
-      .collection('annonces')
-      .doc(listingId)
-      .onSnapshot(documentSnapshot => {
-        const data = documentSnapshot.data();
-        setListing(data);
-        setTitle(data.title);
-        setDescription(data.description);
-        setPrice(data.price.toString());
-        setCity(data.city);
-        setNeighborhood(data.neighborhood);
-        setPropertyType(data.propertyType);
-        setBathrooms(data.bathrooms.toString());
-        setArea(data.area ? data.area.toString() : '');
-        setImageUrls(data.imageUrls || []);
-      });
-
-    return () => subscriber();
-  }, [listingId]);
-
-  const handleSelectImages = () => {
-    launchImageLibrary({ mediaType: 'photo', selectionLimit: 5 }, (response) => {
-      if (response.didCancel) {
-        console.log('User cancelled image picker');
-      } else if (response.errorCode) {
-        console.log('ImagePicker Error: ', response.errorMessage);
-      } else {
-        setImages(response.assets);
+    const fetchProperty = async () => {
+      try {
+        const prop = await getPropertyById(propertyId);
+        // Convertir les nombres en chaînes pour les champs de texte
+        const stringifiedProp = Object.entries(prop).reduce((acc, [key, value]) => {
+            acc[key] = value !== null && value !== undefined ? String(value) : '';
+            return acc;
+        }, {});
+        setPropertyData(stringifiedProp);
+      } catch (error) {
+        console.error(error);
+        Alert.alert("Erreur", "Impossible de charger les données de l'annonce.");
+        navigation.goBack();
+      } finally {
+        setLoading(false);
       }
-    });
+    };
+    fetchProperty();
+  }, [propertyId, navigation]);
+
+  const handleInputChange = (field, value) => {
+    setPropertyData({ ...propertyData, [field]: value });
   };
 
   const handleUpdateListing = async () => {
-    const currentUser = auth().currentUser;
-    if (currentUser) {
-      const newImageUrls = [...imageUrls];
-      for (const image of images) {
-        const reference = storage().ref(`listings/${currentUser.uid}/${Date.now()}`);
-        await reference.putFile(image.uri);
-        const url = await reference.getDownloadURL();
-        newImageUrls.push(url);
-      }
+    setSaving(true);
+    try {
+      const dataToUpdate = {
+        ...propertyData,
+        price: parseFloat(propertyData.price),
+        bedrooms: parseInt(propertyData.bedrooms),
+        bathrooms: parseInt(propertyData.bathrooms),
+        area: parseFloat(propertyData.area),
+      };
+      // Retirer les champs non modifiables
+      delete dataToUpdate.id;
+      delete dataToUpdate.ownerId;
+      delete dataToUpdate.createdAt;
 
-      firestore()
-        .collection('annonces')
-        .doc(listingId)
-        .update({
-          title,
-          description,
-          price: parseFloat(price),
-          city,
-          neighborhood,
-          propertyType,
-          bathrooms: parseInt(bathrooms),
-          area: area ? parseFloat(area) : null,
-          imageUrls: newImageUrls,
-        })
-        .then(() => {
-          console.log('Listing updated!');
-          navigation.goBack();
-        });
+      await updateProperty(propertyId, dataToUpdate);
+      Alert.alert('Succès', 'Votre annonce a été mise à jour !');
+      navigation.goBack();
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Erreur', "La mise à jour de l'annonce a échoué.");
+    } finally {
+      setSaving(false);
     }
   };
 
-  if (!listing) {
-    return <Text>Loading...</Text>;
+  if (loading) {
+    return <ActivityIndicator size="large" color="#007AFF" className="flex-1 justify-center" />;
   }
 
+  if (!propertyData) return null;
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={typography.h1}>Modifier l'annonce</Text>
-      <TextInput style={styles.input} placeholder="Titre" value={title} onChangeText={setTitle} placeholderTextColor="#A9A9A9" />
-      <TextInput style={styles.input} placeholder="Description" value={description} onChangeText={setDescription} multiline placeholderTextColor="#A9A9A9" />
-      <TextInput style={styles.input} placeholder="Prix" value={price} onChangeText={setPrice} keyboardType="numeric" placeholderTextColor="#A9A9A9" />
-      <TextInput style={styles.input} placeholder="Ville" value={city} onChangeText={setCity} placeholderTextColor="#A9A9A9" />
-      <TextInput style={styles.input} placeholder="Quartier" value={neighborhood} onChangeText={setNeighborhood} placeholderTextColor="#A9A9A9" />
-      <TextInput style={styles.input} placeholder="Type de bien" value={propertyType} onChangeText={setPropertyType} placeholderTextColor="#A9A9A9" />
-      <TextInput style={styles.input} placeholder="Salles de bain" value={bathrooms} onChangeText={setBathrooms} keyboardType="numeric" placeholderTextColor="#A9A9A9" />
-      <TextInput style={styles.input} placeholder="Superficie (facultatif)" value={area} onChangeText={setArea} keyboardType="numeric" placeholderTextColor="#A9A9A9" />
+    <ScrollView className="flex-1 bg-gray-100" contentContainerStyle={{ padding: 16 }}>
+      <Text className="text-3xl font-bold text-gray-800 mb-6">Modifier l'annonce</Text>
 
-      <TouchableOpacity style={styles.button} onPress={handleSelectImages}>
-        <Text style={styles.buttonText}>Sélectionner de nouvelles photos</Text>
-      </TouchableOpacity>
-      <View style={styles.imageContainer}>
-        {imageUrls.map((url, index) => (
-          <Image key={index} source={{ uri: url }} style={styles.image} />
-        ))}
-        {images.map((image, index) => (
-          <Image key={index} source={{ uri: image.uri }} style={styles.image} />
-        ))}
-      </View>
+      <FormInput label="Titre" value={propertyData.title} onChangeText={(val) => handleInputChange('title', val)} />
+      <FormInput label="Description" value={propertyData.description} onChangeText={(val) => handleInputChange('description', val)} multiline />
+      <FormInput label="Prix (€/mois)" value={propertyData.price} onChangeText={(val) => handleInputChange('price', val)} keyboardType="numeric" />
+      <FormInput label="Ville" value={propertyData.city} onChangeText={(val) => handleInputChange('city', val)} />
+      <FormInput label="Quartier" value={propertyData.neighborhood} onChangeText={(val) => handleInputChange('neighborhood', val)} />
+      <FormInput label="Type de bien" value={propertyData.propertyType} onChangeText={(val) => handleInputChange('propertyType', val)} />
+      <FormInput label="Nombre de pièces" value={propertyData.bedrooms} onChangeText={(val) => handleInputChange('bedrooms', val)} keyboardType="numeric" />
+      <FormInput label="Salles de bain" value={propertyData.bathrooms} onChangeText={(val) => handleInputChange('bathrooms', val)} keyboardType="numeric" />
+      <FormInput label="Superficie (m²)" value={propertyData.area} onChangeText={(val) => handleInputChange('area', val)} keyboardType="numeric" />
 
-      <TouchableOpacity style={styles.button} onPress={handleUpdateListing}>
-        <Text style={styles.buttonText}>Mettre à jour l'annonce</Text>
+      <Text className="text-gray-600 my-4">La modification des images n'est pas encore disponible.</Text>
+
+      <TouchableOpacity
+        className={`h-16 justify-center items-center rounded-lg ${saving ? 'bg-gray-400' : 'bg-green-500'}`}
+        onPress={handleUpdateListing}
+        disabled={saving}
+      >
+        {saving ? <ActivityIndicator size="small" color="#fff" /> : <Text className="text-white font-bold text-xl">Enregistrer les modifications</Text>}
       </TouchableOpacity>
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    backgroundColor: colors.background,
-  },
-  input: {
-    width: '100%',
-    height: 50,
-    backgroundColor: colors.surface,
-    borderColor: colors.primary,
-    borderWidth: 1,
-    borderRadius: 5,
-    marginBottom: 15,
-    paddingHorizontal: 15,
-    fontSize: 16,
-    color: colors.text,
-  },
-  button: {
-    backgroundColor: colors.primary,
-    padding: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  buttonText: {
-    color: colors.surface,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  imageContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginVertical: 10,
-  },
-  image: {
-    width: 100,
-    height: 100,
-    margin: 5,
-    borderRadius: 5,
-  },
-});
 
 export default EditListingScreen;
