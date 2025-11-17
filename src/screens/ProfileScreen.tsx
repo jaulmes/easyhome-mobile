@@ -1,114 +1,78 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Button, StyleSheet, ActivityIndicator, Image, TouchableOpacity } from 'react-native';
+import { View, Text, ActivityIndicator, Image, TouchableOpacity } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
-import { colors } from '../theme/colors';
-import { typography } from '../theme/typography';
 import { signOut } from '../services/authService';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 const ProfileScreen = ({ navigation }) => {
-  const [user, setUser] = useState(null);
+  const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const user = auth().currentUser;
 
   useEffect(() => {
-    const currentUser = auth().currentUser;
-    if (currentUser) {
-      const subscriber = firestore()
-        .collection('utilisateurs')
-        .doc(currentUser.uid)
-        .onSnapshot(documentSnapshot => {
-          if (documentSnapshot.exists) {
-            setUser({ ...documentSnapshot.data(), email: currentUser.email });
-          } else {
-            // Handle case where user document doesn't exist in Firestore
-            setUser({ email: currentUser.email, nom: 'Utilisateur inconnu' });
-          }
-          setLoading(false);
-        });
+    if (!user) return;
 
-      return () => subscriber();
-    }
-  }, []);
+    const subscriber = firestore()
+      .collection('users')
+      .doc(user.uid)
+      .onSnapshot(documentSnapshot => {
+        if (documentSnapshot.exists) {
+          setUserData({ ...documentSnapshot.data(), email: user.email });
+        } else {
+          setUserData({ email: user.email, displayName: user.displayName || 'Utilisateur inconnu' });
+        }
+        setLoading(false);
+      });
+
+    return () => subscriber();
+  }, [user]);
 
   if (loading) {
-    return <ActivityIndicator size="large" color={colors.primary} />;
+    return <ActivityIndicator size="large" color="#3D7BFF" className="flex-1 justify-center" />;
   }
 
+  const InfoRow = ({ icon, label, value }) => (
+    <View className="flex-row items-center bg-white p-4 rounded-xl mb-3">
+      <Icon name={icon} size={24} color="#3D7BFF" />
+      <View className="ml-4">
+        <Text className="text-sm text-text-secondary">{label}</Text>
+        <Text className="text-lg text-text-primary font-medium">{value}</Text>
+      </View>
+    </View>
+  );
+
   return (
-    <View style={styles.container}>
-      {user ? (
-        <>
-          <Image source={{ uri: user.photoProfil || 'https://via.placeholder.com/150' }} style={styles.profileImage} />
-          <Text style={typography.h1}>{user.nom}</Text>
-          <Text style={styles.info}>{user.email}</Text>
-          <Text style={styles.info}>{user.role}</Text>
-          <Text style={styles.info}>{user.telephone}</Text>
-          <Text style={styles.description}>{user.description}</Text>
-          <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('EditProfile')}>
-            <Text style={styles.buttonText}>Modifier le profil</Text>
-          </TouchableOpacity>
-        </>
-      ) : (
-        <Text>Aucune information de profil trouvée.</Text>
-      )}
-      <TouchableOpacity style={[styles.button, styles.signOutButton]} onPress={signOut}>
-        <Text style={styles.buttonText}>Déconnexion</Text>
-      </TouchableOpacity>
+    <View className="flex-1 bg-background-light">
+      <View className="items-center p-8 bg-white shadow-md">
+        <Image
+          source={{ uri: userData?.photoURL || 'https://via.placeholder.com/150' }}
+          className="w-32 h-32 rounded-full border-4 border-primary-light"
+        />
+        <Text className="text-3xl font-bold text-text-primary mt-4">{userData?.displayName}</Text>
+        <Text className="text-base text-text-secondary capitalize">{userData?.role}</Text>
+      </View>
+
+      <View className="p-5">
+        <InfoRow icon="mail-outline" label="Email" value={userData?.email} />
+        <InfoRow icon="call-outline" label="Téléphone" value={userData?.phone || 'Non renseigné'} />
+
+        <TouchableOpacity
+          className="bg-primary h-14 justify-center items-center rounded-xl mt-6 shadow-md"
+          onPress={() => navigation.navigate('EditProfile')}
+        >
+          <Text className="text-white font-bold text-lg">Modifier le profil</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          className="bg-danger h-14 justify-center items-center rounded-xl mt-4 shadow-md"
+          onPress={signOut}
+        >
+          <Text className="text-white font-bold text-lg">Déconnexion</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: colors.background,
-  },
-  profileImage: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    marginBottom: 20,
-  },
-  infoContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  info: {
-    ...typography.body,
-    marginBottom: 8,
-    color: colors.text,
-  },
-  description: {
-    ...typography.body,
-    textAlign: 'center',
-    marginVertical: 15,
-    color: colors.text,
-    paddingHorizontal: 20,
-  },
-  button: {
-    width: '80%',
-    height: 50,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 25,
-    marginTop: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  buttonText: {
-    color: colors.surface,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  signOutButton: {
-    backgroundColor: colors.error,
-  },
-});
 
 export default ProfileScreen;
