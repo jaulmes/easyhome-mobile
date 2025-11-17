@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { GiftedChat, Bubble } from 'react-native-gifted-chat';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
-import { colors } from '../theme/colors';
 
 const ChatScreen = ({ route }) => {
   const { conversationId } = route.params;
@@ -36,12 +35,13 @@ const ChatScreen = ({ route }) => {
 
   const onSend = useCallback((messages = []) => {
     const { _id, createdAt, text, user } = messages[0];
-    firestore()
+    const messageRef = firestore()
       .collection('conversations')
       .doc(conversationId)
       .collection('messages')
-      .add({
-        _id,
+      .doc(_id);
+
+    messageRef.set({
         createdAt,
         text,
         user,
@@ -64,23 +64,27 @@ const ChatScreen = ({ route }) => {
         {...props}
         wrapperStyle={{
           right: {
-            backgroundColor: colors.primary,
+            backgroundColor: '#3D7BFF', // primary.DEFAULT
           },
           left: {
-            backgroundColor: colors.surface,
+            backgroundColor: '#F1F3F5', // background.DEFAULT
           },
         }}
         textStyle={{
           right: {
-            color: colors.background,
+            color: '#FFFFFF',
           },
           left: {
-            color: colors.text,
+            color: '#212529', // text.primary
           },
         }}
       />
     );
   };
+
+  if (!currentUser) {
+      return null; // or a loading indicator
+  }
 
   return (
     <GiftedChat
@@ -91,6 +95,7 @@ const ChatScreen = ({ route }) => {
         name: currentUser.displayName,
       }}
       renderBubble={renderBubble}
+      placeholder="Écrivez un message..."
     />
   );
 };

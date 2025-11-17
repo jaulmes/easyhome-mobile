@@ -1,136 +1,100 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Button, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Image } from 'react-native';
-import firestore from '@react-native-firebase/firestore';
+import React, { useState, useCallback } from 'react';
+import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import auth from '@react-native-firebase/auth';
-import { colors } from '../../theme/colors';
-import { typography } from '../../theme/typography';
+import { getUserProperties, deleteProperty } from '../../services/propertyService';
+import MyPropertyCard from '../../components/MyPropertyCard';
 
 const MyListingsScreen = ({ navigation }) => {
-  const [listings, setListings] = useState([]);
+  const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
-  const currentUser = auth().currentUser;
+  const [error, setError] = useState(null);
+  const user = auth().currentUser;
 
-  useEffect(() => {
-    if (currentUser) {
-      const subscriber = firestore()
-        .collection('annonces')
-        .where('ownerId', '==', currentUser.uid)
-        .onSnapshot(querySnapshot => {
-          const listings = [];
-          querySnapshot.forEach(documentSnapshot => {
-            listings.push({
-              ...documentSnapshot.data(),
-              id: documentSnapshot.id,
-            });
-          });
-          setListings(listings);
-          setLoading(false);
-        });
-
-      return () => subscriber();
+  const fetchUserProperties = useCallback(async () => {
+    if (!user) {
+      setError("Vous devez être connecté pour voir vos annonces.");
+      setLoading(false);
+      return;
     }
-  }, [currentUser]);
+    try {
+      setLoading(true);
+      const props = await getUserProperties(user.uid);
+      setProperties(props);
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError("Impossible de charger vos annonces.");
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
-  const handleDelete = (listingId) => {
-    firestore().collection('annonces').doc(listingId).delete();
+  useFocusEffect(fetchUserProperties);
+
+  const handleDelete = async (propertyId) => {
+    try {
+      await deleteProperty(propertyId);
+      Alert.alert('Succès', 'Annonce supprimée.');
+      // Rafraîchir la liste
+      setProperties(prev => prev.filter(p => p.id !== propertyId));
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Erreur', 'La suppression a échoué.');
+    }
   };
 
-  if (loading) {
-    return <ActivityIndicator size="large" color={colors.primary} />;
-  }
+  const handleEdit = (propertyId) => {
+    navigation.navigate('EditListing', { propertyId });
+  };
 
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <Image source={{ uri: item.imageUrls?.[0] || 'https://via.placeholder.com/150' }} style={styles.cardImage} />
-      <View style={styles.cardContent}>
-        <Text style={typography.h2}>{item.title}</Text>
-        <Text style={styles.price}>{item.price} €</Text>
-        <View style={styles.actions}>
-          <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('EditListing', { listingId: item.id })}>
-            <Text style={styles.buttonText}>Modifier</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.button, styles.deleteButton]} onPress={() => handleDelete(item.id)}>
-            <Text style={styles.buttonText}>Supprimer</Text>
-          </TouchableOpacity>
+  const renderContent = () => {
+    if (loading) {
+      return <ActivityIndicator size="large" color="#007AFF" className="mt-10" />;
+    }
+
+    if (error) {
+      return <Text className="text-red-500 text-lg text-center mt-10">{error}</Text>;
+    }
+
+    if (properties.length === 0) {
+      return (
+        <View className="flex-1 justify-center items-center">
+          <Text className="text-gray-600 text-lg">Vous n'avez publié aucune annonce.</Text>
         </View>
-      </View>
-    </View>
-  );
+      );
+    }
+
+    return (
+      <FlatList
+        data={properties}
+        renderItem={({ item }) => (
+          <MyPropertyCard
+            property={item}
+            onEdit={() => handleEdit(item.id)}
+            onDelete={() => handleDelete(item.id)}
+          />
+        )}
+        keyExtractor={item => item.id}
+        contentContainerStyle={{ padding: 16 }}
+      />
+    );
+  };
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('AddListing')}>
-        <Text style={styles.addButtonText}>Ajouter une nouvelle annonce</Text>
-      </TouchableOpacity>
-      <FlatList
-        data={listings}
-        renderItem={renderItem}
-        keyExtractor={item => item.id}
-      />
+    <View className="flex-1 bg-gray-100">
+      <View className="bg-white p-4 shadow-md flex-row justify-between items-center">
+        <Text className="text-3xl font-bold text-gray-800">Mes Annonces</Text>
+        <TouchableOpacity
+            onPress={() => navigation.navigate('AddProperty')}
+            className="bg-blue-600 p-3 rounded-lg"
+        >
+            <Text className="text-white font-bold">Ajouter</Text>
+        </TouchableOpacity>
+      </View>
+      {renderContent()}
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 10,
-    backgroundColor: colors.background,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 10,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  cardImage: {
-    width: '100%',
-    height: 200,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-  },
-  cardContent: {
-    padding: 15,
-  },
-  price: {
-    ...typography.h2,
-    color: colors.primary,
-    marginVertical: 5,
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 10,
-  },
-  button: {
-    backgroundColor: colors.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-  },
-  buttonText: {
-    color: colors.surface,
-    fontWeight: 'bold',
-  },
-  deleteButton: {
-    backgroundColor: colors.error,
-  },
-  addButton: {
-    backgroundColor: colors.primary,
-    padding: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  addButtonText: {
-    color: colors.surface,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
 
 export default MyListingsScreen;

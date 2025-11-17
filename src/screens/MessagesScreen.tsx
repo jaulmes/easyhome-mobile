@@ -1,104 +1,88 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, Image } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
-import { colors } from '../theme/colors';
-import { typography } from '../theme/typography';
+import { useFocusEffect } from '@react-navigation/native';
 
 const MessagesScreen = ({ navigation }) => {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const currentUser = auth().currentUser;
+  const user = auth().currentUser;
 
-  useEffect(() => {
-    if (currentUser) {
-      const subscriber = firestore()
-        .collection('conversations')
-        .where('participants', 'array-contains', currentUser.uid)
-        .onSnapshot(async querySnapshot => {
-          const conversationsData = [];
-          for (const doc of querySnapshot.docs) {
-            const data = doc.data();
-            const otherUserId = data.participants.find(uid => uid !== currentUser.uid);
-            let otherUserName = 'Utilisateur inconnu';
-            let otherUserPhoto = 'https://via.placeholder.com/150';
+  const fetchConversations = useCallback(() => {
+    if (!user) return;
 
-            if (otherUserId) {
-              const userDoc = await firestore().collection('utilisateurs').doc(otherUserId).get();
-              if (userDoc.exists) {
-                otherUserName = userDoc.data().nom;
-                otherUserPhoto = userDoc.data().photoProfil;
-              }
+    setLoading(true);
+    const subscriber = firestore()
+      .collection('conversations')
+      .where('participants', 'array-contains', user.uid)
+      .onSnapshot(async querySnapshot => {
+        const conversationsData = [];
+        for (const doc of querySnapshot.docs) {
+          const data = doc.data();
+          const otherUserId = data.participants.find(uid => uid !== user.uid);
+          let otherUserName = 'Utilisateur inconnu';
+          let otherUserPhoto = 'https://via.placeholder.com/150';
+
+          if (otherUserId) {
+            const userDoc = await firestore().collection('users').doc(otherUserId).get();
+            if (userDoc.exists) {
+              otherUserName = userDoc.data().displayName;
+              otherUserPhoto = userDoc.data().photoURL;
             }
-
-            conversationsData.push({
-              id: doc.id,
-              otherUserName,
-              otherUserPhoto,
-              ...data,
-            });
           }
-          setConversations(conversationsData);
-          setLoading(false);
-        });
 
-      return () => subscriber();
-    }
-  }, [currentUser]);
+          conversationsData.push({
+            id: doc.id,
+            otherUserName,
+            otherUserPhoto,
+            ...data,
+          });
+        }
+        setConversations(conversationsData);
+        setLoading(false);
+      });
+
+    return () => subscriber();
+  }, [user]);
+
+  useFocusEffect(fetchConversations);
 
   if (loading) {
-    return <ActivityIndicator size="large" color={colors.primary} />;
+    return (
+        <View className="flex-1 bg-background-light">
+            <View className="bg-white p-4 shadow-md">
+                <Text className="text-3xl font-bold text-text-primary">Messages</Text>
+            </View>
+            <ActivityIndicator size="large" color="#3D7BFF" className="mt-10" />
+        </View>
+    );
   }
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.conversationItem}
-      onPress={() => navigation.navigate('Chat', { conversationId: item.id, otherUserName: item.otherUserName })}
-    >
-      <Image source={{ uri: item.otherUserPhoto }} style={styles.avatar} />
-      <View style={styles.textContainer}>
-        <Text style={typography.h2}>{item.otherUserName}</Text>
-        <Text style={styles.lastMessage}>{item.lastMessage?.text}</Text>
-      </View>
-    </TouchableOpacity>
-  );
-
   return (
-    <View style={styles.container}>
+    <View className="flex-1 bg-background-light">
+      <View className="bg-white p-4 shadow-md">
+        <Text className="text-3xl font-bold text-text-primary">Messages</Text>
+      </View>
       <FlatList
         data={conversations}
-        renderItem={renderItem}
         keyExtractor={item => item.id}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            className="flex-row items-center p-4 border-b border-gray-200 bg-white"
+            onPress={() => navigation.navigate('Chat', { conversationId: item.id, otherUserName: item.otherUserName })}
+          >
+            <Image source={{ uri: item.otherUserPhoto || 'https://via.placeholder.com/150' }} className="w-14 h-14 rounded-full" />
+            <View className="flex-1 ml-4">
+              <Text className="text-lg font-bold text-text-primary">{item.otherUserName}</Text>
+              <Text className="text-base text-text-secondary" numberOfLines={1}>{item.lastMessage?.text}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+        ListEmptyComponent={<Text className="text-text-secondary text-lg text-center mt-16">Aucune conversation.</Text>}
       />
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  conversationItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.surface,
-  },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 15,
-  },
-  textContainer: {
-    flex: 1,
-  },
-  lastMessage: {
-    ...typography.body,
-    color: colors.text,
-  },
-});
 
 export default MessagesScreen;

@@ -1,203 +1,91 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, TextInput, TouchableOpacity, Image } from 'react-native';
-import firestore from '@react-native-firebase/firestore';
-import { colors } from '../theme/colors';
-import { typography } from '../theme/typography';
+import React, { useState, useCallback } from 'react';
+import { View, Text, FlatList, ActivityIndicator, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { getAllProperties } from '../services/propertyService';
+import PropertyCard from '../components/PropertyCard';
 
 const SearchScreen = ({ navigation }) => {
-  const [listings, setListings] = useState([]);
+  const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Input states
-  const [searchQuery, setSearchQuery] = useState('');
-  const [city, setCity] = useState('');
-  const [propertyType, setPropertyType] = useState('');
-  const [minPrice, setMinPrice] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
-
-  // Active search filters
-  const [activeFilters, setActiveFilters] = useState({
-    searchQuery: '',
+  const [filters, setFilters] = useState({
     city: '',
     propertyType: '',
     minPrice: '',
     maxPrice: '',
+    bedrooms: '',
   });
 
-  const handleSearch = () => {
-    setLoading(true);
-    setActiveFilters({
-      searchQuery,
-      city,
-      propertyType,
-      minPrice,
-      maxPrice,
-    });
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({ ...prev, [field]: value }));
   };
 
-  useEffect(() => {
-    let query = firestore().collection('annonces').where('status', '==', 'visible');
-
-    if (activeFilters.city) {
-      query = query.where('city', '==', activeFilters.city);
-    }
-    if (activeFilters.propertyType) {
-      query = query.where('propertyType', '==', activeFilters.propertyType);
-    }
-    if (activeFilters.minPrice) {
-      query = query.where('price', '>=', parseFloat(activeFilters.minPrice));
-    }
-    if (activeFilters.maxPrice) {
-      query = query.where('price', '<=', parseFloat(activeFilters.maxPrice));
-    }
-
-    const subscriber = query.onSnapshot(querySnapshot => {
-      let listingsData = [];
-      querySnapshot.forEach(documentSnapshot => {
-        listingsData.push({
-          ...documentSnapshot.data(),
-          id: documentSnapshot.id,
-        });
-      });
-
-      if (activeFilters.searchQuery) {
-        listingsData = listingsData.filter(item =>
-          item.title.toLowerCase().includes(activeFilters.searchQuery.toLowerCase()) ||
-          item.description.toLowerCase().includes(activeFilters.searchQuery.toLowerCase()) ||
-          item.neighborhood.toLowerCase().includes(activeFilters.searchQuery.toLowerCase())
-        );
-      }
-
-      setListings(listingsData);
+  const fetchData = useCallback(async (appliedFilters) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const props = await getAllProperties(appliedFilters);
+      setProperties(props);
+    } catch (err) {
+      console.error(err);
+      setError("Impossible de charger les données.");
+    } finally {
       setLoading(false);
-    });
+    }
+  }, []);
 
-    return () => subscriber();
-  }, [activeFilters]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchData({});
+    }, [fetchData])
+  );
 
-  if (loading) {
-    return <ActivityIndicator size="large" color={colors.primary} />;
-  }
+  const handleSearch = () => {
+    fetchData(filters);
+  };
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('ListingDetails', { listingId: item.id })}>
-      <Image source={{ uri: item.imageUrls?.[0] || 'https://via.placeholder.com/150' }} style={styles.cardImage} />
-      <View style={styles.cardContent}>
-        <Text style={typography.h2}>{item.title}</Text>
-        <Text style={styles.price}>{item.price} €</Text>
-        <Text style={styles.location}>{item.city}, {item.neighborhood}</Text>
-      </View>
-    </TouchableOpacity>
+  const ListHeader = () => (
+    <>
+      <Text className="text-2xl font-bold text-text-primary mb-4">Résultats de la recherche</Text>
+    </>
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.filtersContainer}>
-        <TextInput style={styles.input} placeholder="Rechercher..." value={searchQuery} onChangeText={setSearchQuery} placeholderTextColor="#A9A9A9" />
-        <View style={styles.row}>
-          <TextInput style={[styles.input, styles.halfInput]} placeholder="Ville" value={city} onChangeText={setCity} placeholderTextColor="#A9A9A9" />
-          <TextInput style={[styles.input, styles.halfInput]} placeholder="Type de bien" value={propertyType} onChangeText={setPropertyType} placeholderTextColor="#A9A9A9" />
-        </View>
-        <View style={styles.row}>
-          <TextInput style={[styles.input, styles.halfInput]} placeholder="Prix min" value={minPrice} onChangeText={setMinPrice} keyboardType="numeric" placeholderTextColor="#A9A9A9" />
-          <TextInput style={[styles.input, styles.halfInput]} placeholder="Prix max" value={maxPrice} onChangeText={setMaxPrice} keyboardType="numeric" placeholderTextColor="#A9A9A9" />
-        </View>
-        <TouchableOpacity style={styles.button} onPress={handleSearch}>
-          <Text style={styles.buttonText}>Rechercher</Text>
+    <View className="flex-1 bg-background-light">
+      <View className="bg-white p-4 shadow-md">
+        <Text className="text-3xl font-bold text-text-primary">Explorer</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-4 -mx-4 px-4">
+          <TextInput placeholder="Ville" value={filters.city} onChangeText={v => handleFilterChange('city', v)} className="bg-background rounded-lg p-3 mr-2 w-36 text-text-primary" placeholderTextColor="#ADB5BD" />
+          <TextInput placeholder="Type" value={filters.propertyType} onChangeText={v => handleFilterChange('propertyType', v)} className="bg-background rounded-lg p-3 mr-2 w-36" placeholderTextColor="#ADB5BD" />
+          <TextInput placeholder="Prix min" value={filters.minPrice} onChangeText={v => handleFilterChange('minPrice', v)} className="bg-background rounded-lg p-3 mr-2 w-28" keyboardType="numeric" placeholderTextColor="#ADB5BD" />
+          <TextInput placeholder="Prix max" value={filters.maxPrice} onChangeText={v => handleFilterChange('maxPrice', v)} className="bg-background rounded-lg p-3 mr-2 w-28" keyboardType="numeric" placeholderTextColor="#ADB5BD" />
+          <TextInput placeholder="Pièces min" value={filters.bedrooms} onChangeText={v => handleFilterChange('bedrooms', v)} className="bg-background rounded-lg p-3 mr-2 w-32" keyboardType="numeric" placeholderTextColor="#ADB5BD" />
+        </ScrollView>
+        <TouchableOpacity onPress={handleSearch} className="bg-primary h-12 justify-center items-center rounded-xl mt-4 shadow-md">
+          <Text className="text-white font-bold text-lg">Rechercher</Text>
         </TouchableOpacity>
       </View>
-      {listings.length === 0 && !loading ? (
-        <View style={styles.noResultsContainer}>
-          <Text style={styles.noResultsText}>Aucun résultat trouvé.</Text>
+
+      {loading ? <ActivityIndicator size="large" color="#3D7BFF" className="mt-10" /> : error ? (
+        <View className="flex-1 justify-center items-center p-5">
+          <Text className="text-danger text-lg text-center">{error}</Text>
+          <TouchableOpacity className="mt-4 bg-primary p-3 rounded-lg" onPress={handleSearch}>
+            <Text className="text-white font-bold">Réessayer</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
-          data={listings}
-          renderItem={renderItem}
+          data={properties}
+          renderItem={({ item }) => (<PropertyCard property={item} onPress={() => navigation.navigate('PropertyDetails', { propertyId: item.id })} />)}
           keyExtractor={item => item.id}
-          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ padding: 16 }}
+          ListHeaderComponent={<ListHeader />}
+          ListEmptyComponent={<Text className="text-text-secondary text-lg text-center mt-16">Aucun résultat trouvé pour ces critères.</Text>}
         />
       )}
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  filtersContainer: {
-    padding: 10,
-    backgroundColor: colors.surface,
-  },
-  input: {
-    height: 50,
-    backgroundColor: colors.surface,
-    borderColor: colors.primary,
-    borderWidth: 1,
-    borderRadius: 5,
-    marginBottom: 10,
-    paddingHorizontal: 15,
-    fontSize: 16,
-    color: colors.text,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  halfInput: {
-    width: '48%',
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 10,
-    margin: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  cardImage: {
-    width: '100%',
-    height: 200,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-  },
-  cardContent: {
-    padding: 15,
-  },
-  price: {
-    ...typography.h2,
-    color: colors.primary,
-    marginVertical: 5,
-  },
-  location: {
-    ...typography.body,
-    color: 'gray',
-  },
-  button: {
-    backgroundColor: colors.primary,
-    padding: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonText: {
-    color: colors.surface,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  noResultsContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  noResultsText: {
-    ...typography.h2,
-    color: 'gray',
-  },
-});
 
 export default SearchScreen;
