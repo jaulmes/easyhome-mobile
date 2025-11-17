@@ -1,153 +1,120 @@
 import React, { useState, useEffect } from 'react';
-import { Text, TextInput, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, ScrollView, Image, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import { launchImageLibrary } from 'react-native-image-picker';
 import storage from '@react-native-firebase/storage';
-import { colors } from '../theme/colors';
-import { typography } from '../theme/typography';
+import { updateUserDocument } from '../services/userService';
 
 const EditProfileScreen = ({ navigation }) => {
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [description, setDescription] = useState('');
-  const [profileImage, setProfileImage] = useState(null);
-  const [currentProfileImageUrl, setCurrentProfileImageUrl] = useState(null);
+  const [userData, setUserData] = useState({ displayName: '', phone: '' });
+  const [profileImageUri, setProfileImageUri] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const currentUser = auth().currentUser;
+  const user = auth().currentUser;
 
   useEffect(() => {
-    if (currentUser) {
-      firestore()
-        .collection('utilisateurs')
-        .doc(currentUser.uid)
-        .get()
-        .then(documentSnapshot => {
-          if (documentSnapshot.exists) {
-            const userData = documentSnapshot.data();
-            setName(userData.nom);
-            setPhone(userData.telephone);
-            setDescription(userData.description);
-            setCurrentProfileImageUrl(userData.photoProfil);
-          }
-        });
-    }
-  }, [currentUser]);
+    if (!user) return;
+
+    firestore()
+      .collection('users')
+      .doc(user.uid)
+      .get()
+      .then(documentSnapshot => {
+        if (documentSnapshot.exists) {
+          const data = documentSnapshot.data();
+          setUserData({ displayName: data.displayName, phone: data.phone || '' });
+          setProfileImageUri(data.photoURL);
+        }
+        setLoading(false);
+      });
+  }, [user]);
 
   const handleSelectImage = () => {
-    launchImageLibrary({ mediaType: 'photo' }, (response) => {
-      if (response.didCancel) {
-        console.log('User cancelled image picker');
-      } else if (response.errorCode) {
-        console.log('ImagePicker Error: ', response.errorMessage);
-      } else {
-        setProfileImage(response.assets[0]);
-      }
+    launchImageLibrary({ mediaType: 'photo', quality: 0.7 }, (response) => {
+      if (response.didCancel || response.errorCode) return;
+      setProfileImageUri(response.assets[0].uri);
     });
   };
 
   const handleUpdateProfile = async () => {
-    if (currentUser) {
-      let imageUrl = currentProfileImageUrl;
-      if (profileImage) {
-        const reference = storage().ref(`profileImages/${currentUser.uid}`);
-        await reference.putFile(profileImage.uri);
-        imageUrl = await reference.getDownloadURL();
+    if (!user) return;
+
+    setSaving(true);
+    try {
+      let newPhotoURL = userData.photoURL;
+      // Si une nouvelle image a été sélectionnée et ce n'est pas l'ancienne URL
+      if (profileImageUri && profileImageUri !== userData.photoURL) {
+        const reference = storage().ref(`profileImages/${user.uid}`);
+        await reference.putFile(profileImageUri);
+        newPhotoURL = await reference.getDownloadURL();
       }
 
-      firestore()
-        .collection('utilisateurs')
-        .doc(currentUser.uid)
-        .update({
-          nom: name,
-          telephone: phone,
-          description: description,
-          photoProfil: imageUrl,
-        })
-        .then(() => {
-          console.log('User updated!');
-          navigation.goBack();
-        });
+      const dataToUpdate = {
+        displayName: userData.displayName,
+        phone: userData.phone,
+        photoURL: newPhotoURL,
+      };
+
+      await updateUserDocument(user.uid, dataToUpdate);
+      await user.updateProfile({ displayName: userData.displayName, photoURL: newPhotoURL });
+
+      Alert.alert('Succès', 'Votre profil a été mis à jour.');
+      navigation.goBack();
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Erreur', 'La mise à jour a échoué.');
+    } finally {
+      setSaving(false);
     }
   };
 
+  if (loading) {
+    return <ActivityIndicator size="large" color="#3D7BFF" className="flex-1 justify-center" />;
+  }
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={typography.h1}>Modifier le profil</Text>
-      <TouchableOpacity onPress={handleSelectImage}>
-        <Image
-          source={{ uri: profileImage ? profileImage.uri : currentProfileImageUrl || 'https://via.placeholder.com/150' }}
-          style={styles.profileImage}
-        />
-      </TouchableOpacity>
+    <ScrollView className="flex-1 bg-background-light p-6">
+      <Text className="text-3xl font-bold text-text-primary mb-8">Modifier le profil</Text>
+
+      <View className="items-center mb-8">
+        <TouchableOpacity onPress={handleSelectImage}>
+          <Image
+            source={{ uri: profileImageUri || 'https://via.placeholder.com/150' }}
+            className="w-32 h-32 rounded-full border-4 border-primary-light"
+          />
+        </TouchableOpacity>
+      </View>
+
+      <Text className="text-lg font-semibold text-gray-700 mb-2">Nom complet</Text>
       <TextInput
-        style={styles.input}
-        placeholder="Nom"
-        value={name}
-        onChangeText={setName}
-        placeholderTextColor="#A9A9A9"
+        className="w-full h-14 bg-white border border-gray-300 rounded-xl mb-6 px-4 text-lg"
+        placeholder="Votre nom"
+        value={userData.displayName}
+        onChangeText={(text) => setUserData(prev => ({...prev, displayName: text}))}
+        placeholderTextColor="#ADB5BD"
       />
+
+      <Text className="text-lg font-semibold text-gray-700 mb-2">Téléphone</Text>
       <TextInput
-        style={styles.input}
-        placeholder="Téléphone"
-        value={phone}
-        onChangeText={setPhone}
+        className="w-full h-14 bg-white border border-gray-300 rounded-xl mb-8 px-4 text-lg"
+        placeholder="Votre numéro de téléphone"
+        value={userData.phone}
+        onChangeText={(text) => setUserData(prev => ({...prev, phone: text}))}
         keyboardType="phone-pad"
-        placeholderTextColor="#A9A9A9"
+        placeholderTextColor="#ADB5BD"
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Description"
-        value={description}
-        onChangeText={setDescription}
-        multiline
-        placeholderTextColor="#A9A9A9"
-      />
-      <TouchableOpacity style={styles.button} onPress={handleUpdateProfile}>
-        <Text style={styles.buttonText}>Mettre à jour</Text>
+
+      <TouchableOpacity
+        className={`h-16 justify-center items-center rounded-xl shadow-md ${saving ? 'bg-gray-400' : 'bg-primary'}`}
+        onPress={handleUpdateProfile}
+        disabled={saving}
+      >
+        {saving ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold text-xl">Enregistrer</Text>}
       </TouchableOpacity>
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    alignItems: 'center',
-    backgroundColor: colors.background,
-  },
-  profileImage: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    marginBottom: 20,
-  },
-  input: {
-    width: '100%',
-    height: 50,
-    backgroundColor: colors.surface,
-    borderColor: colors.primary,
-    borderWidth: 1,
-    borderRadius: 5,
-    marginBottom: 15,
-    paddingHorizontal: 15,
-    fontSize: 16,
-    color: colors.text,
-  },
-  button: {
-    width: '100%',
-    height: 50,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 5,
-    marginBottom: 10,
-  },
-  buttonText: {
-    color: colors.background,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-});
 
 export default EditProfileScreen;

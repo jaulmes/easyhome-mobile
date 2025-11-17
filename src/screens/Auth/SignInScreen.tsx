@@ -1,94 +1,100 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
-import { signIn } from '../../services/authService';
-import { colors } from '../../theme/colors';
-import { typography } from '../../theme/typography';
+import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { signIn, signInWithGoogle } from '../../services/authService';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 const SignInScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(null); // 'email', 'google', or null
 
-  const handleSignIn = () => {
-    signIn(email, password)
-      .then(() => {
-        console.log('User signed in!');
-      })
-      .catch(error => {
-        console.error(error);
-      });
+  const handleSignIn = async () => {
+    if (!email || !password) {
+      Alert.alert('Champs requis', 'Veuillez saisir votre email et votre mot de passe.');
+      return;
+    }
+    setLoading('email');
+    try {
+      await signIn(email, password);
+    } catch (error) {
+      Alert.alert('Erreur de connexion', "L'email ou le mot de passe est incorrect.");
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setLoading('google');
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      Alert.alert('Erreur de connexion', "Une erreur est survenue lors de la connexion avec Google.");
+    } finally {
+      setLoading(null);
+    }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={typography.h1}>Bienvenue !</Text>
+    <View className="flex-1 justify-center p-6 bg-background-light">
+      <View className="items-center mb-12">
+        <Icon name="home" size={60} color="#3D7BFF" />
+        <Text className="text-4xl font-bold text-text-primary mt-2">EasyHome</Text>
+        <Text className="text-lg text-text-secondary mt-1">Connectez-vous pour continuer</Text>
+      </View>
+
       <TextInput
-        style={styles.input}
+        className="w-full h-14 bg-white border border-gray-300 rounded-xl mb-4 px-4 text-lg text-text-primary focus:border-primary"
         placeholder="Email"
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
-        placeholderTextColor="#A9A9A9"
+        placeholderTextColor="#ADB5BD"
       />
+
       <TextInput
-        style={styles.input}
+        className="w-full h-14 bg-white border border-gray-300 rounded-xl mb-6 px-4 text-lg text-text-primary focus:border-primary"
         placeholder="Mot de passe"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
-        placeholderTextColor="#A9A9A9"
+        placeholderTextColor="#ADB5BD"
       />
-      <TouchableOpacity style={styles.button} onPress={handleSignIn}>
-        <Text style={styles.buttonText}>Se connecter</Text>
+
+      <TouchableOpacity
+        className="w-full h-14 bg-primary justify-center items-center rounded-xl shadow-md"
+        onPress={handleSignIn}
+        disabled={loading !== null}
+      >
+        {loading === 'email' ? <ActivityIndicator color="white" /> : <Text className="text-white text-lg font-bold">Se connecter</Text>}
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-        <Text style={styles.link}>Vous n'avez pas de compte ? S'inscrire</Text>
+
+      <View className="flex-row items-center my-6">
+        <View className="flex-1 h-px bg-gray-300" />
+        <Text className="mx-4 text-text-secondary">OU</Text>
+        <View className="flex-1 h-px bg-gray-300" />
+      </View>
+
+      <TouchableOpacity
+        className="w-full h-14 bg-white border border-gray-300 flex-row justify-center items-center rounded-xl shadow-md"
+        onPress={handleGoogleSignIn}
+        disabled={loading !== null}
+      >
+        {loading === 'google' ? <ActivityIndicator /> : (
+          <>
+            <Icon name="logo-google" size={24} color="#DC3545" />
+            <Text className="text-text-primary text-lg font-semibold ml-3">Continuer avec Google</Text>
+          </>
+        )}
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => navigation.navigate('PasswordReset')}>
-        <Text style={styles.link}>Mot de passe oublié ?</Text>
+
+      <TouchableOpacity onPress={() => navigation.navigate('SignUp')} className="mt-8 items-center">
+        <Text className="text-text-secondary text-base">
+          Vous n'avez pas de compte ? <Text className="text-primary font-bold">S'inscrire</Text>
+        </Text>
       </TouchableOpacity>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: colors.background,
-  },
-  input: {
-    width: '100%',
-    height: 50,
-    backgroundColor: colors.surface,
-    borderColor: colors.primary,
-    borderWidth: 1,
-    borderRadius: 5,
-    marginBottom: 15,
-    paddingHorizontal: 15,
-    fontSize: 16,
-    color: colors.text,
-  },
-  button: {
-    width: '100%',
-    height: 50,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 5,
-    marginBottom: 10,
-  },
-  buttonText: {
-    color: colors.background,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  link: {
-    color: colors.primary,
-    marginTop: 10,
-  },
-});
 
 export default SignInScreen;
