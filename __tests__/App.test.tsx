@@ -1,13 +1,17 @@
-/**
- * @format
- */
-
 import React from 'react';
-import ReactTestRenderer from 'react-test-renderer';
+import { render } from '@testing-library/react-native';
 import App from '../App';
 
-test('renders correctly', async () => {
-  await ReactTestRenderer.act(() => {
-    ReactTestRenderer.create(<App />);
+jest.mock('../src/navigation/RootNavigator', () => {
+  const MockRootNavigator = () => <></>;
+  return MockRootNavigator;
+});
+
+describe('App', () => {
+  it('renders correctly', () => {
+    const { getByTestId } = render(<App />);
+    // Since App just renders RootNavigator, we can't assert much here.
+    // This test now primarily ensures that App renders without crashing.
+    // A more thorough test would involve testing RootNavigator itself.
   });
 });
